@@ -1041,9 +1041,24 @@ try {
     if (p && typeof p === 'object') { DB.attempts = p.attempts || {}; DB.history = p.history || {}; } }
 } catch(e){}
 function save(){ try { localStorage.setItem(KEY, JSON.stringify(DB)); } catch(e){} }
+/* Shuffle (owner's order): every new attempt gets a fresh question order and
+   option order, stored with the attempt (ord = display position -> bank index,
+   oord = per-question display -> original option index). Answers stay keyed by
+   bank index and original option index, so scoring/history are unaffected.
+   Resume keeps the same order; Restart/Retake creates a new attempt = new order. */
+function shufIdx(n){ var a=[]; for (var i=0;i<n;i++) a.push(i); for (var j=n-1;j>0;j--){ var k=Math.floor(Math.random()*(j+1)), t=a[j]; a[j]=a[k]; a[k]=t; } return a; }
+function makeOrd(cid){
+  var bank=BANK[cid]||[], oord={};
+  bank.forEach(function(m,bi){ oord[bi]=shufIdx(m.o.length); });
+  return { ord:shufIdx(bank.length), oord:oord };
+}
+function ensureOrd(cid, at){
+  var bank=BANK[cid]||[];
+  if (!at.ord || !at.oord || at.ord.length!==bank.length){ var mo=makeOrd(cid); at.ord=mo.ord; at.oord=mo.oord; save(); }
+}
 function getAt(cid, create){
   var a = DB.attempts[cid];
-  if (!a && create) a = DB.attempts[cid] = { ans:{}, marks:{}, idx:0, ts:Date.now() };
+  if (!a && create){ a = DB.attempts[cid] = { ans:{}, marks:{}, idx:0, ts:Date.now() }; var mo=makeOrd(cid); a.ord=mo.ord; a.oord=mo.oord; }
   return a;
 }
 function histOf(cid){ return DB.history[cid] || []; }
@@ -1230,11 +1245,12 @@ function quizView(cid, idx){
   var o=chapOf(cid); if(!o||o.ex) return home();
   var s=o.s, c=o.c, bank=BANK[cid]||[], n=bank.length;
   if (!n) return chapterView(cid);
-  idx = Math.min(Math.max(idx|0,0), n-1);
-  var at=getAt(cid,true); at.idx=idx; save();
-  CUR.cid=cid; CUR.idx=idx; REVIEW_OK=null;
+  idx = Math.min(Math.max(idx|0,0), n-1);   /* idx = display position in this attempt's shuffled order */
+  var at=getAt(cid,true); ensureOrd(cid,at); at.idx=idx; save();
+  var bi=at.ord[idx];                        /* bank index of the question on screen */
+  CUR.cid=cid; CUR.idx=bi; CUR.pos=idx; REVIEW_OK=null;
   head({back:'#/c/'+cid, title:'अध्याय '+c.no+' · '+c.hi, crumb:s.en+' · Quiz', cls:s.cls});
-  var m=bank[idx], picked=at.ans[idx], marked=!!at.marks[idx], last=(idx===n-1);
+  var m=bank[bi], picked=at.ans[bi], marked=!!at.marks[bi], last=(idx===n-1);
   var allDone = tally(cid,at.ans).answered===n;
   var h='<section class="view">'+
     '<div class="qtop"><span class="qcount">प्रश्न '+(idx+1)+' / '+n+'</span>'+
@@ -1246,14 +1262,14 @@ function quizView(cid, idx){
     ((typeof m.y==='string' && m.y.replace(/\s+/g,'')) ? '<span class="ytag">'+esc(m.y)+'</span>' : '')+'</span>'+
     '<button class="mbtn'+(marked?' on':'')+'" data-mark aria-pressed="'+marked+'">'+IC.flag+'<span>समीक्षा · Review</span></button></div>'+
     '<div class="qtext">'+esc(m.q)+'</div><div class="opts" role="group" aria-label="Options">';
-  m.o.forEach(function(t,i){
-    var cl='opt', dis='';
+  at.oord[bi].forEach(function(oi,d){
+    var t=m.o[oi], cl='opt', dis='';
     if (picked!==undefined){
       dis=' disabled';
-      if (i===m.a) cl+=' ok'; else if (i===picked) cl+=' bad'; else cl+=' dim';
+      if (oi===m.a) cl+=' ok'; else if (oi===picked) cl+=' bad'; else cl+=' dim';
     }
-    h+='<button class="'+cl+'" data-pick="'+i+'"'+dis+'><span class="ltr">'+LET[i]+'</span><span class="txt">'+esc(t)+'</span>'+
-       '<span class="mk">'+(i===m.a?IC.ok:IC.no)+'</span></button>';
+    h+='<button class="'+cl+'" data-pick="'+oi+'"'+dis+'><span class="ltr">'+LET[d]+'</span><span class="txt">'+esc(t)+'</span>'+
+       '<span class="mk">'+(oi===m.a?IC.ok:IC.no)+'</span></button>';
   });
   h+='</div><div class="expl'+(picked!==undefined?' open':'')+'" id="expl" aria-live="polite"><div>'+explHTML(m,picked)+'</div></div></article>'+
      '<div class="qpad"></div></section>'+
@@ -1276,9 +1292,10 @@ function pick(i){
   if (at.ans[idx]!==undefined) return;
   at.ans[idx]=i; save();
   var m=BANK[cid][idx];
-  Array.prototype.forEach.call($app.querySelectorAll('.opt'), function(b,k){
+  Array.prototype.forEach.call($app.querySelectorAll('.opt'), function(b){
     b.disabled=true;
-    if (k===m.a) b.classList.add('ok'); else if (k===i) b.classList.add('bad'); else b.classList.add('dim');
+    var oi=parseInt(b.getAttribute('data-pick'),10);
+    if (oi===m.a) b.classList.add('ok'); else if (oi===i) b.classList.add('bad'); else b.classList.add('dim');
   });
   var ex=document.getElementById('expl');
   ex.firstElementChild.innerHTML=explHTML(m,i);
@@ -1300,13 +1317,15 @@ var sheetEl=document.getElementById('sheet'), sbody=document.getElementById('sbo
 /* The palette is navigation ONLY: jump to a question. It contains no Submit / Finish control. */
 function openSheet(){
   if (!CUR.cid) return;
-  var cid=CUR.cid, bank=BANK[cid]||[], at=getAt(cid,true), t=tally(cid,at.ans), mk=countKeys(at.marks);
+  var cid=CUR.cid, bank=BANK[cid]||[], at=getAt(cid,true); ensureOrd(cid,at);
+  var t=tally(cid,at.ans), mk=countKeys(at.marks);
   var h='<div class="legend"><span><i class="sw a"></i>उत्तरित · Answered</span><span><i class="sw"></i>अनुत्तरित · Unanswered</span>'+
         '<span><i class="sw m"></i>समीक्षा · Review</span><span><i class="sw c"></i>वर्तमान · Current</span></div><div class="pgrid">';
-  for (var i=0;i<bank.length;i++){
-    var cl='pc'+(at.ans[i]!==undefined?' a':'')+(at.marks[i]?' m':'')+(i===CUR.idx?' cur':'');
-    var lbl='प्रश्न '+(i+1)+(at.ans[i]!==undefined?' – उत्तरित':' – अनुत्तरित')+(at.marks[i]?' – समीक्षा के लिए चिह्नित':'');
-    h+='<button class="'+cl+'" data-jump="'+i+'" aria-label="'+lbl+'">'+(i+1)+'</button>';
+  for (var pos=0;pos<bank.length;pos++){
+    var bi2=at.ord[pos];
+    var cl='pc'+(at.ans[bi2]!==undefined?' a':'')+(at.marks[bi2]?' m':'')+(pos===CUR.pos?' cur':'');
+    var lbl='प्रश्न '+(pos+1)+(at.ans[bi2]!==undefined?' – उत्तरित':' – अनुत्तरित')+(at.marks[bi2]?' – समीक्षा के लिए चिह्नित':'');
+    h+='<button class="'+cl+'" data-jump="'+pos+'" aria-label="'+lbl+'">'+(pos+1)+'</button>';
   }
   h+='</div><div class="sumline"><b>'+t.answered+'</b> उत्तरित · answered &nbsp;|&nbsp; <b>'+t.skipped+'</b> अनुत्तरित · unanswered &nbsp;|&nbsp; <b>'+mk+'</b> समीक्षा · review</div>';
   h+='<div class="stack"><button class="btn ghost" data-close>बंद करें · Close</button></div>';
@@ -1335,8 +1354,10 @@ function reviewView(cid){
   head({back:'#/q/'+cid+'/'+CUR.idx, title:'समीक्षा · Review', crumb:'अध्याय '+c.no+' · '+c.hi, cls:s.cls});
   var t=tally(cid,at.ans), un=[], mk=[];
   for (var i=0;i<n;i++){ if (at.ans[i]===undefined) un.push(i); if (at.marks[i]) mk.push(i); }
-  function cells(arr, cls){ var h='<div class="pgrid">'; arr.forEach(function(i){
-    h+='<button class="pc '+cls+'" data-jump="'+i+'" aria-label="प्रश्न '+(i+1)+' पर जाएँ">'+(i+1)+'</button>'; }); return h+'</div>'; }
+  ensureOrd(cid, at);
+  function cells(arr, cls){ var h='<div class="pgrid">'; arr.forEach(function(bi){
+    var pos=at.ord.indexOf(bi);
+    h+='<button class="pc '+cls+'" data-jump="'+pos+'" aria-label="प्रश्न '+(pos+1)+' पर जाएँ">'+(pos+1)+'</button>'; }); return h+'</div>'; }
   var h='<section class="view"><div class="chead"><div class="kicker">'+c.hi+' · '+c.en+'</div><h1>समीक्षा · Review</h1>'+
     '<div class="en">जमा करने से पहले अपने उत्तर जाँच लें · Check before you submit</div></div>'+
     '<div class="stats"><div class="stat"><b>'+t.answered+'</b><span>उत्तरित<br>Answered</span></div>'+
