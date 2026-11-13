@@ -92,12 +92,45 @@ If the site moves to its own domain or repo root, change `base` in
 `vite.config.ts` to `/`, rebuild, and drop the sub-path from the published
 folder.
 
-## Known limitations (phase one)
+## The 3D hero (phase two)
+
+The hero is a procedural WebGL stadium: track, lane markings, stepped stands and
+floodlight masts, plus a stylised sprinter, with a scroll-driven camera and a
+small pointer parallax. Files:
+
+| File | Role |
+| --- | --- |
+| `src/components/hero/HeroVisual.tsx` | Gatekeeper: decides static vs WebGL, fades the scene in, error boundary |
+| `src/components/3d/StadiumScene.tsx` | Canvas, lights, composition |
+| `src/components/3d/TrackEnvironment.tsx` | Stadium geometry |
+| `src/components/3d/AthleteFigure.tsx` | Stylised runner |
+| `src/components/3d/CameraRig.tsx` | Scroll progress + pointer parallax |
+| `src/lib/webgl.ts` | WebGL and data-saver probes |
+
+It is loaded with `React.lazy`, so three.js sits in its own chunk
+(`StadiumScene-*.js`, ~222 kB gzip) that the initial page never downloads.
+
+**Fallbacks.** The static SVG hero is always rendered first and stays as the
+permanent fallback. The WebGL scene is only requested when: motion is allowed
+(`prefers-reduced-motion` is not `reduce`), WebGL is available, and the
+connection is not data-saver/2G. If the scene throws at runtime, the error
+boundary unmounts it and the static hero remains. Narrow/coarse-pointer devices
+render the stadium without the athlete.
+
+**Rendering cost.** `frameloop="demand"`: frames are drawn only while the camera
+is settling or the pointer moves, then the loop idles. No shadows, no
+post-processing, primitive geometry only, and a lower DPR cap on mobile. If you
+add animated elements, call `invalidate()` rather than switching to a continuous
+loop.
+
+## Known limitations
 
 - Document titles and descriptions are set per route in the browser. Open Graph
   tags are static, so link previews in WhatsApp and similar show the academy
-  defaults rather than the specific page. Prerendering is the fix, and is
-  planned alongside phase two.
-- The hero is a static composition. The WebGL stadium scene, athlete visual and
-  scroll choreography are phase two, and will load as a separate lazily-loaded
-  chunk with a static fallback.
+  defaults rather than the specific page. Prerendering is the fix.
+- The athlete in the 3D scene is a deliberately stylised figure, not a
+  photoreal rigged model. Replacing it with a licensed animated GLB is the next
+  step if that level of realism is wanted.
+- An unmatched URL such as `/bittu-defence-academy/typo/` is handled by GitHub
+  Pages' own 404, because Pages only reads a `404.html` at the repository root.
+  The site's own 404 page renders for in-app navigation only.

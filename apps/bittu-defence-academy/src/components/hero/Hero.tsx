@@ -1,7 +1,6 @@
 import { motion, useReducedMotion } from 'framer-motion';
 import { MapPin } from 'lucide-react';
-import StadiumBackdrop from './StadiumBackdrop';
-import AthleteVisual from './AthleteVisual';
+import HeroVisual from './HeroVisual';
 import ActionButton from '../common/ActionButton';
 import { academy } from '../../data/academy';
 import { locationLine } from '../../lib/links';
@@ -21,16 +20,13 @@ export default function Hero() {
 
   return (
     <section
+      id="hero"
       className="relative isolate flex min-h-[100svh] flex-col justify-end overflow-hidden bg-ink pt-28 pb-10 sm:justify-center sm:pt-32 sm:pb-16"
       aria-label="Bittu Defence Academy introduction"
     >
-      <div className="absolute inset-0">
-        <StadiumBackdrop />
-      </div>
-      <div className="absolute inset-0 bg-gradient-to-r from-ink via-ink/85 to-ink/25" aria-hidden="true" />
-      <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/25 to-ink/70" aria-hidden="true" />
-
-      <AthleteVisual className="absolute right-[-4%] bottom-[6%] hidden h-[72%] w-[38%] max-w-[560px] opacity-90 lg:block" />
+      <HeroVisual />
+      <div className="absolute inset-0 bg-gradient-to-r from-ink via-ink/70 to-transparent" aria-hidden="true" />
+      <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/10 to-ink/55" aria-hidden="true" />
 
       <div className="relative mx-auto w-full max-w-[1320px] px-6 sm:px-8 lg:px-12">
         <motion.div
