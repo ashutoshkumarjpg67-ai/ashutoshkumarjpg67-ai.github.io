@@ -103,12 +103,14 @@ small pointer parallax. Files:
 | `src/components/hero/HeroVisual.tsx` | Gatekeeper: decides static vs WebGL, fades the scene in, error boundary |
 | `src/components/3d/StadiumScene.tsx` | Canvas, lights, composition |
 | `src/components/3d/TrackEnvironment.tsx` | Stadium geometry |
-| `src/components/3d/AthleteFigure.tsx` | Stylised runner |
+| `src/components/3d/AthleteModel.tsx` | Loads the CC0 rigged athlete and plays its jog loop |
 | `src/components/3d/CameraRig.tsx` | Scroll progress + pointer parallax |
 | `src/lib/webgl.ts` | WebGL and data-saver probes |
 
 It is loaded with `React.lazy`, so three.js sits in its own chunk
-(`StadiumScene-*.js`, ~222 kB gzip) that the initial page never downloads.
+(`StadiumScene-*.js`, ~223 kB gzip) that the initial page never downloads. The
+athlete model is fetched imperatively after the scene mounts, so the stadium
+renders first and the figure appears when it arrives.
 
 **Fallbacks.** The static SVG hero is always rendered first and stays as the
 permanent fallback. The WebGL scene is only requested when: motion is allowed
@@ -117,20 +119,22 @@ connection is not data-saver/2G. If the scene throws at runtime, the error
 boundary unmounts it and the static hero remains. Narrow/coarse-pointer devices
 render the stadium without the athlete.
 
-**Rendering cost.** `frameloop="demand"`: frames are drawn only while the camera
-is settling or the pointer moves, then the loop idles. No shadows, no
-post-processing, primitive geometry only, and a lower DPR cap on mobile. If you
-add animated elements, call `invalidate()` rather than switching to a continuous
-loop.
+**Rendering cost.** The rigged figure needs continuous frames, so the canvas runs
+while the hero is on screen and switches to `frameloop="never"` when an
+IntersectionObserver reports the hero has scrolled away. That is the only
+continuous loop on the page. No shadow maps, no post-processing, primitive
+stadium geometry, lower DPR cap on mobile.
 
 ## Known limitations
 
 - Document titles and descriptions are set per route in the browser. Open Graph
   tags are static, so link previews in WhatsApp and similar show the academy
   defaults rather than the specific page. Prerendering is the fix.
-- The athlete in the 3D scene is a deliberately stylised figure, not a
-  photoreal rigged model. Replacing it with a licensed animated GLB is the next
-  step if that level of realism is wanted.
+- The athlete is a CC0 rigged model (`public/models/athlete-jog.glb`, 4.85 MB)
+  with a single looping jog clip. Provenance, licence and the optimisation
+  command are recorded in `public/models/README.md`. The model downloads only
+  after the WebGL hero mounts, and never on mobile-sized screens (the figure is
+  hidden there), so it is not part of the initial page weight.
 - An unmatched URL such as `/bittu-defence-academy/typo/` is handled by GitHub
   Pages' own 404, because Pages only reads a `404.html` at the repository root.
   The site's own 404 page renders for in-app navigation only.

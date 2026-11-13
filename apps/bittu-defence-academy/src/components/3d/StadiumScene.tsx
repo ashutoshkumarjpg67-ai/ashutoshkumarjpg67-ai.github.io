@@ -1,6 +1,7 @@
+import { useEffect, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import TrackEnvironment from './TrackEnvironment';
-import AthleteFigure from './AthleteFigure';
+import AthleteModel from './AthleteModel';
 import CameraRig from './CameraRig';
 
 interface StadiumSceneProps {
@@ -9,15 +10,30 @@ interface StadiumSceneProps {
 }
 
 /**
- * Lazy-loaded WebGL hero. Kept deliberately light: primitive geometry, one
- * directional key light, no shadows, no post-processing, demand-driven loop.
+ * Lazy-loaded WebGL hero. Primitive stadium geometry, one rigged CC0 athlete,
+ * no shadows, no post-processing. The render loop only runs while the hero is
+ * on screen; the animated figure needs continuous frames, so the loop switches
+ * to `never` once the hero scrolls out of view.
  */
 export default function StadiumScene({ mobile, onReady }: StadiumSceneProps) {
+  const [inView, setInView] = useState(true);
+
+  useEffect(() => {
+    const hero = document.getElementById('hero');
+    if (!hero || typeof IntersectionObserver === 'undefined') return;
+    const observer = new IntersectionObserver(
+      (entries) => setInView(entries.some((entry) => entry.isIntersecting)),
+      { threshold: 0.01 },
+    );
+    observer.observe(hero);
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <Canvas
       className="!absolute inset-0"
       dpr={mobile ? [1, 1.25] : [1, 1.75]}
-      frameloop="demand"
+      frameloop={inView ? 'always' : 'never'}
       gl={{ antialias: true, alpha: false, powerPreference: 'high-performance' }}
       camera={{ position: [0, 2.1, 11.5], fov: mobile ? 54 : 46, near: 0.1, far: 150 }}
       onCreated={({ gl }) => {
@@ -44,7 +60,7 @@ export default function StadiumScene({ mobile, onReady }: StadiumSceneProps) {
 
       <TrackEnvironment mobile={mobile} />
       {/* Narrow screens keep the stadium only — the figure would crowd the copy. */}
-      {!mobile && <AthleteFigure />}
+      {!mobile && <AthleteModel />}
       <CameraRig mobile={mobile} />
     </Canvas>
   );
