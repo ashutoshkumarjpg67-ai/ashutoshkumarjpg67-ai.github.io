@@ -1,0 +1,107 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-ink: #101a16;
+  --color-ink-deep: #0a1210;
+  --color-moss: #263d30;
+  --color-moss-soft: #314b3b;
+  --color-gold: #c6a45a;
+  --color-gold-soft: #e0c890;
+  --color-bone: #f2f0e8;
+  --color-mist: #b9c2ba;
+
+  --font-display: 'Anton', 'Arial Narrow', system-ui, sans-serif;
+  --font-label: 'Barlow Condensed', 'Arial Narrow', system-ui, sans-serif;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
+
+  body {
+    background-color: var(--color-ink);
+    color: var(--color-bone);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    overflow-x: hidden;
+  }
+
+  ::selection {
+    background-color: var(--color-gold);
+    color: var(--color-ink-deep);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-gold);
+    outline-offset: 3px;
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: var(--font-display);
+    font-weight: 400;
+    letter-spacing: 0.005em;
+    line-height: 0.9;
+    text-transform: uppercase;
+  }
+
+  .label {
+    font-family: var(--font-label);
+    font-weight: 600;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+  }
+
+  .tactical-grid {
+    background-image:
+      linear-gradient(to right, rgb(198 164 90 / 0.07) 1px, transparent 1px),
+      linear-gradient(to bottom, rgb(198 164 90 / 0.07) 1px, transparent 1px);
+    background-size: 72px 72px;
+  }
+
+  .hatch {
+    background-image: repeating-linear-gradient(
+      -45deg,
+      rgb(198 164 90 / 0.14) 0px,
+      rgb(198 164 90 / 0.14) 1px,
+      transparent 1px,
+      transparent 8px
+    );
+  }
+
+  .hairline {
+    border-color: rgb(198 164 90 / 0.24);
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+}
