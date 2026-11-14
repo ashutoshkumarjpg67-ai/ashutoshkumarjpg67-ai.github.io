@@ -2,10 +2,10 @@ import { useEffect, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Vector3 } from 'three';
 
-const CAMERA_START = new Vector3(0, 2.1, 11.5);
-const CAMERA_END = new Vector3(1.4, 3.5, 6.2);
-const LOOK_START = new Vector3(0, 1.5, -4);
-const LOOK_END = new Vector3(0.3, 1.7, -9);
+const CAMERA_START = new Vector3(0.4, 1.8, 10.4);
+const CAMERA_END = new Vector3(1.0, 2.6, 8.8);
+const LOOK_START = new Vector3(0.5, 1.35, -2);
+const LOOK_END = new Vector3(0.8, 1.5, -6);
 
 const MOBILE_CAMERA_START = new Vector3(0, 2.3, 14);
 const MOBILE_CAMERA_END = new Vector3(0.6, 3.4, 9);

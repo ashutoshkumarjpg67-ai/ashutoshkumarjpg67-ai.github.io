@@ -37,7 +37,7 @@ function Runner({ scene, clips }: LoadedModel) {
     mixer.update(Math.min(delta, 0.05));
   });
 
-  return <primitive object={scene} rotation-y={-0.55} />;
+  return <primitive object={scene} rotation-y={-1.15} />;
 }
 
 /**
@@ -90,10 +90,10 @@ export default function AthleteModel() {
   if (!model) return null;
 
   return (
-    <group position={[2.55, 0, -1.5]}>
+    <group position={[2.76, 0, 2.6]}>
       {/* soft contact shadow, since the scene runs without shadow maps */}
       <mesh rotation-x={-Math.PI / 2} position={[0, 0.014, 0]} scale={[1, 1.5, 1]}>
-        <circleGeometry args={[0.46, 32]} />
+        <circleGeometry args={[0.5, 32]} />
         <meshBasicMaterial color="#050908" transparent opacity={0.45} />
       </mesh>
 

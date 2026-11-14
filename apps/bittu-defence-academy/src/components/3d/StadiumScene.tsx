@@ -35,7 +35,7 @@ export default function StadiumScene({ mobile, onReady }: StadiumSceneProps) {
       dpr={mobile ? [1, 1.25] : [1, 1.75]}
       frameloop={inView ? 'always' : 'never'}
       gl={{ antialias: true, alpha: false, powerPreference: 'high-performance' }}
-      camera={{ position: [0, 2.1, 11.5], fov: mobile ? 54 : 46, near: 0.1, far: 150 }}
+      camera={{ position: [0.4, 1.8, 10.4], fov: mobile ? 54 : 46, near: 0.1, far: 150 }}
       onCreated={({ gl }) => {
         gl.setClearColor('#0a1210');
         onReady();
