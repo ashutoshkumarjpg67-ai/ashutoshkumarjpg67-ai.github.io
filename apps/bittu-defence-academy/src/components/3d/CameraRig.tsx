@@ -65,7 +65,7 @@ export default function CameraRig({ mobile }: CameraRigProps) {
     };
   }, [invalidate]);
 
-  useFrame(() => {
+  useFrame((state) => {
     const target = progress.current;
     smoothed.current += (target - smoothed.current) * 0.12;
     const p = smoothed.current;
@@ -78,14 +78,27 @@ export default function CameraRig({ mobile }: CameraRigProps) {
     const parallaxX = mobile ? 0 : pointer.current.x * 0.42;
     const parallaxY = mobile ? 0 : pointer.current.y * -0.16;
 
+    /**
+     * Idle orbit: a slow arc around the track while the page is at rest. It is
+     * faded out as the scroll dolly takes over, so the composed framing at the
+     * top of the page and the settled scroll framing never fight each other.
+     */
+    const t = state.clock.elapsedTime;
+    const rest = 1 - p;
+    const orbit = (mobile ? 0.55 : 1) * rest;
+    const orbitX = Math.sin(t * 0.19) * 0.5 * orbit;
+    const orbitZ = Math.cos(t * 0.15) * 0.42 * orbit;
+    const bob = Math.sin(t * 0.27) * 0.05 * orbit;
+    const drift = Math.sin(t * 0.19) * 0.16 * orbit;
+
     camera.position.set(
-      from.x + (to.x - from.x) * p + parallaxX,
-      from.y + (to.y - from.y) * p + parallaxY,
-      from.z + (to.z - from.z) * p,
+      from.x + (to.x - from.x) * p + parallaxX + orbitX,
+      from.y + (to.y - from.y) * p + parallaxY + bob,
+      from.z + (to.z - from.z) * p + orbitZ,
     );
 
     camera.lookAt(
-      lookFrom.x + (lookTo.x - lookFrom.x) * p + parallaxX * 0.35,
+      lookFrom.x + (lookTo.x - lookFrom.x) * p + parallaxX * 0.35 + drift,
       lookFrom.y + (lookTo.y - lookFrom.y) * p + parallaxY * 0.35,
       lookFrom.z + (lookTo.z - lookFrom.z) * p,
     );
