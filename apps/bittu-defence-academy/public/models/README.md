@@ -36,3 +36,25 @@ In the scene all node materials are replaced with a single dark moss material, s
 the figure reads as a monochrome athlete silhouette rather than a textured
 character. The clip is played continuously on loop; the mesh itself does not
 translate (it is played in place).
+
+Because every material is overridden at load time, the model's textures are
+never sampled. They have therefore been removed, and Meshopt re-run on the
+untextured document:
+
+  gltf-transform meshopt athlete-untextured.glb athlete-jog.glb
+
+Result: 917 kB — smaller than any textured variant measured:
+
+  | variant                                   | size     |
+  | ----------------------------------------- | -------- |
+  | WebP 1024 px textures + Meshopt (previous)| 1.70 MB  |
+  | KTX2 ETC1S q128 textures + Meshopt        | 1.76 MB  |
+  | no textures + Meshopt (current)           | 917 kB   |
+
+KTX2/Basis was evaluated and rejected on measurement: the 11 textures were
+already WebP at 1024 px (about 780 kB in total), so ETC1S encoding plus its mip
+chains came out larger than what it replaced, and it would additionally have
+cost a ~150 kB transcoder download at runtime. Re-add textures only if the
+figure is ever shown with its own materials; in that case use `uastc` for the
+normal maps and attach `KTX2Loader` with a transcoder path alongside the Meshopt
+decoder.
