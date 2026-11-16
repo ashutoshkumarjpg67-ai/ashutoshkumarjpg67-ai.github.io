@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { MeshoptDecoder } from 'meshoptimizer/decoder';
 import {
   AnimationMixer,
   LoopRepeat,
@@ -52,6 +53,9 @@ export default function AthleteModel() {
   useEffect(() => {
     let cancelled = false;
     const loader = new GLTFLoader();
+    // The model uses EXT_meshopt_compression; the decoder is bundled (~20 kB)
+    // so no extra network request is needed before parsing.
+    loader.setMeshoptDecoder(MeshoptDecoder);
     const material = new MeshStandardMaterial({
       color: '#3d5b47',
       roughness: 0.34,

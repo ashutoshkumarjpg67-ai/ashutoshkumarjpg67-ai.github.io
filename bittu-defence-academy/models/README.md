@@ -17,8 +17,20 @@ Optimised for this site with @gltf-transform/cli:
     --compress false --texture-compress webp --texture-size 1024 --simplify false
 
 Result: 4.85 MB. Textures resized to 1024 px and re-encoded as WebP, unused nodes
-pruned. Geometry, rig and the animation are unchanged. `quantize` was tried and
-rejected — it dropped the skin and broke the bind pose.
+pruned. Geometry, rig and the animation are unchanged.
+
+Then geometry compressed with Meshopt:
+
+  gltf-transform meshopt athlete-jog.glb athlete-jog-meshopt.glb
+
+Result: 1.70 MB, stored back over athlete-jog.glb. This adds
+`EXT_meshopt_compression`, `EXT_texture_webp` and `KHR_mesh_quantization` to
+`extensionsRequired`, so the loader must have the Meshopt decoder attached
+(see `src/components/3d/AthleteModel.tsx`). Do not strip the decoder call — the
+model will fail to parse without it.
+
+An earlier standalone `quantize` pass was rejected: applied without Meshopt it
+dropped the skin and broke the bind pose.
 
 In the scene all node materials are replaced with a single dark moss material, so
 the figure reads as a monochrome athlete silhouette rather than a textured
